@@ -4,14 +4,15 @@
 #     "marimo==0.13.15",
 #     "altair==4.2.0",
 #     "pandas==2.3.0",
-#     "numpy==2.3.0"
+#     "numpy==2.3.0",
+#     "matplotlib>=3.0.0",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.14.16"
-app = marimo.App(width="medium")
+__generated_with = "0.14.17"
+app = marimo.App(width="medium", app_title="PPV and Prevalence")
 
 
 @app.cell
