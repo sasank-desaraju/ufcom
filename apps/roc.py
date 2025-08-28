@@ -23,7 +23,7 @@ def _():
     import pandas as pd
     #import seaborn as sns
     import altair as alt
-    return alt, mo, np, plt
+    return alt, mo, np, pd, plt
 
 
 @app.cell
@@ -37,13 +37,53 @@ def _(mo):
 
     mo.vstack([mo.hstack([sick_number, sick_mean, sick_std]),
               mo.hstack([healthy_number, healthy_mean, healthy_std])])
-    return healthy_number, sick_mean, sick_number, sick_std
+    return (
+        healthy_mean,
+        healthy_number,
+        healthy_std,
+        sick_mean,
+        sick_number,
+        sick_std,
+    )
 
 
 @app.cell
-def _(np, sick_mean, sick_number, sick_std):
+def _(
+    alt,
+    healthy_mean,
+    healthy_number,
+    healthy_std,
+    np,
+    pd,
+    sick_mean,
+    sick_number,
+    sick_std,
+):
     sick_data = np.random.normal(sick_mean.value, sick_std.value, sick_number.value)
-    return (sick_data,)
+    healthy_data = np.random.normal(healthy_mean.value, healthy_std.value, healthy_number.value)
+
+    # Create a DataFrame for Altair
+    df = pd.DataFrame({
+        'Value': np.concatenate([sick_data, healthy_data]),
+        'Condition': ['A'] * len(sick_data) + ['B'] * len(healthy_data)
+    })
+
+    # Create density plot using Altair
+    density_plot = alt.Chart(df).transform_density(
+        'Value',
+        as_=['Value', 'Density'],
+    ).mark_line().encode(
+        x='Value:Q',
+        y='Density:Q',
+        color='Condition:N'
+    ).properties(
+        title='Density Plot of Two Normal Distributions',
+        width=600,
+        height=400
+    )
+
+    density_plot
+    return healthy_data, sick_data
 
 
 @app.cell
@@ -69,7 +109,7 @@ def _(np, plt, sick_data):
     plt.ylabel('Density')
     plt.grid()
     plt.gca()
-    return
+    return (data,)
 
 
 @app.cell
@@ -90,13 +130,13 @@ def _(alt, sick_data):
     return
 
 
-@app.cell(hide_code=True)
-def _(healthy_number, sick_number):
-    import altair as alt
-    import pandas as pd
+@app.cell(disabled=True, hide_code=True)
+def _(alt, data, healthy_number, pd, sick_number):
+    #import altair as alt
+    #import pandas as pd
 
     # Assuming sick_number and healthy_number are defined as pd.DataFrame
-    data = pd.DataFrame({
+    all_data = pd.DataFrame({
         'Condition': ['Sick'] * len(sick_number.value) + ['Healthy'] * len(healthy_number.value),
         'Values': list(sick_number.value) + list(healthy_number.value)
     })
@@ -113,14 +153,11 @@ def _(healthy_number, sick_number):
     ).interactive()
 
     point_density_chart
-    return (alt,)
+    return
 
 
 @app.cell(disabled=True)
-def _(display, healthy_data, sick_data):
-    import numpy as np
-    import pandas as pd
-    import matplotlib.pyplot as plt
+def _(display, healthy_data, np, pd, plt, sick_data):
     import seaborn as sns
     import ipywidgets as widgets
     from sklearn.metrics import roc_curve
@@ -140,18 +177,18 @@ def _(display, healthy_data, sick_data):
 
     def update_plot(num_sick, mean_sick, std_sick, num_healthy, mean_healthy, std_healthy, cutoff):
         plt.figure(figsize=(12, 6))
-    
+
         # Density plot
         sns.kdeplot(sick_data, color='red', label='Sick', fill=True)
         sns.kdeplot(healthy_data, color='blue', label='Healthy', fill=True)
-    
+
         # Show points
         plt.scatter(sick_data, np.zeros_like(sick_data), color='red', alpha=0.5)
         plt.scatter(healthy_data, np.zeros_like(healthy_data), color='blue', alpha=0.5)
-    
+
         # Cutoff line
         plt.axvline(x=cutoff, color='black', linestyle='--', label='Cutoff')
-    
+
         plt.title('Density Plot of Sick and Healthy Populations')
         plt.xlabel('Biomarker Level')
         plt.ylabel('Density')
@@ -165,10 +202,10 @@ def _(display, healthy_data, sick_data):
         fn = np.sum(sick_data <= cutoff)
         tn = np.sum(healthy_data <= cutoff)
         fp = np.sum(healthy_data > cutoff)
-    
+
         sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
-    
+
         return sensitivity, specificity
 
     # Create sliders
@@ -194,7 +231,7 @@ def _(display, healthy_data, sick_data):
         y_true = [1] * num_sick + [0] * num_healthy
         y_scores = np.concatenate([sick_data, healthy_data])
         fpr, tpr, thresholds = roc_curve(y_true, y_scores)
-    
+
         plt.figure(figsize=(8, 6))
         plt.plot(fpr, tpr, color='blue', label='ROC Curve')
         plt.scatter(fpr[np.abs(thresholds - cutoff).argmin()], tpr[np.abs(thresholds - cutoff).argmin()], color='red', label='Current Point')
@@ -212,7 +249,7 @@ def _(display, healthy_data, sick_data):
         update_plot(num_sick_slider.value, mean_sick_slider.value, std_sick_slider.value,
                      num_healthy_slider.value, mean_healthy_slider.value, std_healthy_slider.value,
                      cutoff_slider.value)
-    
+
         metrics = update_table(cutoff_slider.value)
         display(metrics)
 
@@ -229,7 +266,7 @@ def _(display, healthy_data, sick_data):
 
     # Initial plot and table
     update_all()
-    return np, plt
+    return
 
 
 if __name__ == "__main__":
