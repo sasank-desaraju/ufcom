@@ -11,7 +11,7 @@
 
 import marimo
 
-__generated_with = "0.14.17"
+__generated_with = "0.13.15"
 app = marimo.App(width="medium", app_title="PPV and Prevalence")
 
 
@@ -45,6 +45,18 @@ def _(mo):
 
 @app.cell
 def _(mo):
+    mo.md(
+        r"""
+    ## Setting Sensitivity, Specificity, and Prevalence
+
+    Let's create sliders to adjust the sensitivity, specificity, and prevalence of a disease in a population.
+    """
+    )
+    return
+
+
+@app.cell
+def _(mo):
     # Create sliders for sensitivity, specificity, and prevalence
     sensitivity_slider = mo.ui.slider(0, 100, value=90, label="Sensitivity (%)")
     specificity_slider = mo.ui.slider(0, 100, value=90, label="Specificity (%)")
@@ -55,7 +67,32 @@ def _(mo):
 
 
 @app.cell
-def _(prevalence_slider, sensitivity_slider, specificity_slider):
+def _(mo):
+    mo.md(
+        r"""
+    ## PPV and NPV formulae
+
+    Now, let's write out our formulae for calculating PPV and NPV.
+
+    $$PPV = \frac{TP}{TP + FP} = \frac{Sensitivity \times Prevalence}{Sensitivity \times Prevalence + (1 - Specificity) \times (1 - Prevalence)}$$
+
+    $$NPV = \frac{TN}{TN + FN} = \frac{Specificity \times (1 - Prevalence)}{(1 - Sensitivity) \times Prevalence + Specificity \times (1 - Prevalence)}$$
+
+
+    Do these make sense? Let's take a moment to think about them...
+    """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(r"""## Code for calculating PPV and NPV""")
+    return
+
+
+@app.cell
+def _(mo, prevalence_slider, sensitivity_slider, specificity_slider):
     # Calculate PPV and NPV based on slider values
     sensitivity = sensitivity_slider.value / 100
     specificity = specificity_slider.value / 100
@@ -66,6 +103,8 @@ def _(prevalence_slider, sensitivity_slider, specificity_slider):
     npv = (specificity * (1 - prevalence)) / (((1 - sensitivity) * prevalence) + (specificity * (1 - prevalence)))
 
     ppv, npv
+
+    mo.show_code()
     return npv, ppv
 
 
