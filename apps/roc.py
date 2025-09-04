@@ -28,11 +28,11 @@ def _():
 
 @app.cell
 def _(mo):
-    sick_number = mo.ui.number(value=100, label='Sick Count')
-    sick_mean = mo.ui.number(value=20, label='Sick Mean')
+    sick_number = mo.ui.number(value=30, label='Sick Count')
+    sick_mean = mo.ui.number(value=30, label='Sick Mean')
     sick_std = mo.ui.number(value=5, label='Sick Std Dev')
-    healthy_number = mo.ui.number(value=1000, label='Healthy Count')
-    healthy_mean = mo.ui.number(value=15, label='Healthy Mean')
+    healthy_number = mo.ui.number(value=30, label='Healthy Count')
+    healthy_mean = mo.ui.number(value=10, label='Healthy Mean')
     healthy_std = mo.ui.number(value=5, label='Healthy Std Dev')
 
     mo.vstack([mo.hstack([sick_number, sick_mean, sick_std]),
@@ -69,91 +69,129 @@ def _(
     })
 
     # Create density plot using Altair
-    density_plot = alt.Chart(df).transform_density(
+    # density_plot = alt.Chart(df).transform_density(
+    #     'Value',
+    #     as_=['Value', 'Density'],
+    # ).mark_line().encode(
+    #     x='Value:Q',
+    #     y='Density:Q',
+    #     color='Condition:N'
+    # ).properties(
+    #     title='Density Plot of Two Normal Distributions',
+    #     width=600,
+    #     height=400
+    # )
+
+    # density_plot
+    return healthy_data, sick_data
+
+@app.cell
+def _(df):
+    density_points_plot = alt.Chart(df).transform_density(
         'Value',
         as_=['Value', 'Density'],
-    ).mark_line().encode(
+        groupby=['Condition']
+    ).mark_point().encode(
+        x='Value:Q',
+        y='Density:Q',
+        color='Condition:N'
+    ) + alt.Chart(df).mark_point(filled=True, opacity=0.5).encode(
         x='Value:Q',
         y='Density:Q',
         color='Condition:N'
     ).properties(
-        title='Density Plot of Two Normal Distributions',
+        title='Density and Points Plot of Values',
         width=600,
         height=400
     )
 
-    density_plot
-    return healthy_data, sick_data
+    density_points_plot
+    return density_points_plot
+
+@app.cell
+def _(df, np, alt):
+    dp = alt.Chart(df).mark_point().encode(
+        x='Value:Q',
+        y=alt.value(0),  # Use a constant y-value since we're only plotting points
+        color='Condition:N'
+    ).properties(
+        title='Scatter Plot of Values',
+        width=600,
+        height=400
+    )
+    # gaussian_jitter = alt.Chart(source, title='Normally distributed jitter').mark_circle(size=8).encode(
+    #     y="Major_Genre:N",
+    #     x="IMDB_Rating:Q",
+    #     yOffset="jitter:Q",
+    #     color=alt.Color('Major_Genre:N').legend(None)
+    # ).transform_calculate(
+    #     # Generate Gaussian jitter with a Box-Muller transform
+    #     jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
+    # )
+    #
+    # uniform_jitter = gaussian_jitter.transform_calculate(
+    #     # Generate uniform jitter
+    #     jitter='random()'
+    # ).encode(
+    #     alt.Y('Major_Genre:N').axis(None)
+    # ).properties(
+    #     title='Uniformly distributed jitter'
+    # )
+
+    dp = alt.Chart(df).transform_jitter(
+        transform='y',  # Apply jitter on y-axis
+        mean=0,         # Center around 0
+        stdev=0.2       # Standard deviation for jitter
+    ).mark_point().encode(
+        x='Value:Q',
+        y=alt.value(0),  # Base y-value is 0, jitter will be added
+        color='Condition:N'
+    ).properties(
+        title='Scatter Plot of Values with Jitter',
+        width=600,
+        height=400
+    )
+    dp
+
+@app.cell
+def _():
+    cutoff_slider = mo.ui.slider(start=min(sick_mean.value, healthy_mean.value), stop=max(sick_mean.value, healthy_mean.value), value=20, label='Cutoff Line Position')
+    mo.hstack([cutoff_slider])
+    return cutoff_slider
+
+@app.cell
+def _(density_points_plot):
+    cutoff = cutoff_slider.value
+    cutoff_line = alt.Chart(pd.DataFrame({'cutoff': [cutoff]})).mark_rule(color='red').encode(
+    # cutoff_line = alt.Chart().mark_rule(color='red').encode(
+        x='cutoff:Q',
+        size=alt.value(2),
+    )
+
+    # Combine the plots
+    cutoff_density_points_plot = density_points_plot + cutoff_line
+    cutoff_density_points_plot
+    # cutoff_line
+    return cutoff_density_points_plot
+
 
 
 @app.cell
-def _(np, plt, sick_data):
+def _(cutoff, sick_data, healthy_data, np, pd, alt):
+    # Sensitivity and specificity calculation
+    tp = np.sum(sick_data > cutoff)
+    fn = np.sum(sick_data <= cutoff)
+    tn = np.sum(healthy_data <= cutoff)
+    fp = np.sum(healthy_data > cutoff)
 
-    # Parameters for the Gaussian distribution
-    n_points = 1000
-    mean = 0
-    std_dev = 1
+    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
 
-    # Generate Gaussian distribution
-    data = sick_data
+    print(f"Sensitivity: {sensitivity:.2f}, Specificity: {specificity:.2f}")
+    tp, fn, tn, fp
+    sick_data
+    return sensitivity, specificity
 
-    # Plotting the Gaussian distribution
-    plt.figure(figsize=(10, 6))
-    plt.hist(data, bins=30, density=True, alpha=0.6, color='g')
-    xmin, xmax = plt.xlim()
-    x = np.linspace(xmin, xmax, 100)
-    p = (1 / (std_dev * np.sqrt(2 * np.pi))) * np.exp(-0.5 * ((x - mean) / std_dev) ** 2)
-    plt.plot(x, p, 'k', linewidth=2)
-    plt.title('Gaussian Distribution')
-    plt.xlabel('Value')
-    plt.ylabel('Density')
-    plt.grid()
-    plt.gca()
-    return (data,)
-
-
-@app.cell
-def _(alt, sick_data):
-    # Create a point density plot using Altair
-    alt_point_density_chart = alt.Chart(sick_data).mark_circle(opacity=0.5).encode(
-        x='Values:Q',
-        y='Condition:N',
-        color='Condition:N',
-        tooltip=['Condition:N', 'Values:Q']
-    ).properties(
-        title='Point Density Plot of Sick and Healthy Classes',
-        width=600,
-        height=300
-    ).interactive()
-
-    alt_point_density_chart
-    return
-
-
-@app.cell(disabled=True, hide_code=True)
-def _(alt, data, healthy_number, pd, sick_number):
-    #import altair as alt
-    #import pandas as pd
-
-    # Assuming sick_number and healthy_number are defined as pd.DataFrame
-    all_data = pd.DataFrame({
-        'Condition': ['Sick'] * len(sick_number.value) + ['Healthy'] * len(healthy_number.value),
-        'Values': list(sick_number.value) + list(healthy_number.value)
-    })
-
-    point_density_chart = alt.Chart(data).mark_circle(opacity=0.5).encode(
-        x='Values:Q',
-        y='Condition:N',
-        color='Condition:N',
-        tooltip=['Condition:N', 'Values:Q']
-    ).properties(
-        title='Point Density Plot of Sick and Healthy Classes',
-        width=600,
-        height=300
-    ).interactive()
-
-    point_density_chart
-    return
 
 
 @app.cell(disabled=True)
@@ -169,7 +207,7 @@ def _(display, healthy_data, np, pd, plt, sick_data):
     num_healthy = 100
     mean_healthy = 3
     std_healthy = 1
-    cutoff = 1.5
+    poo_cutoff = 1.5
 
     # Generate data
     _sick_data = np.random.normal(loc=mean_sick, scale=std_sick, size=num_sick)
@@ -217,7 +255,7 @@ def _(display, healthy_data, np, pd, plt, sick_data):
     mean_healthy_slider = widgets.FloatSlider(value=mean_healthy, min=-5, max=5, description='Healthy Mean')
     std_healthy_slider = widgets.FloatSlider(value=std_healthy, min=0.1, max=5, description='Healthy Std Dev')
 
-    cutoff_slider = widgets.FloatSlider(value=cutoff, min=-5, max=5, step=0.1, description='Cutoff')
+    poo_cutoff_slider = widgets.FloatSlider(value=cutoff, min=-5, max=5, step=0.1, description='Cutoff')
 
     def update_table(cutoff):
         sensitivity, specificity = calculate_metrics(cutoff)
@@ -248,12 +286,12 @@ def _(display, healthy_data, np, pd, plt, sick_data):
     def update_all(*args):
         update_plot(num_sick_slider.value, mean_sick_slider.value, std_sick_slider.value,
                      num_healthy_slider.value, mean_healthy_slider.value, std_healthy_slider.value,
-                     cutoff_slider.value)
+                     poo_cutoff_slider.value)
 
-        metrics = update_table(cutoff_slider.value)
+        metrics = update_table(poo_cutoff_slider.value)
         display(metrics)
 
-        update_roc(cutoff_slider.value)
+        update_roc(poo_cutoff_slider.value)
 
     # Attach update function to sliders
     num_sick_slider.observe(update_all, 'value')
@@ -262,7 +300,7 @@ def _(display, healthy_data, np, pd, plt, sick_data):
     num_healthy_slider.observe(update_all, 'value')
     mean_healthy_slider.observe(update_all, 'value')
     std_healthy_slider.observe(update_all, 'value')
-    cutoff_slider.observe(update_all, 'value')
+    poo_cutoff_slider.observe(update_all, 'value')
 
     # Initial plot and table
     update_all()
