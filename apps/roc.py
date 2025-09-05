@@ -24,17 +24,19 @@ def _():
     #import seaborn as sns
     import altair as alt
     import math
-    return alt, mo, np, pd, plt
+    return alt, math, mo, np, pd, plt
 
 
 @app.cell
 def _(mo):
     sick_number = mo.ui.number(value=60, label='Sick Count')
-    sick_mean = mo.ui.number(value=30, label='Sick Mean')
-    sick_std = mo.ui.number(value=5, label='Sick Std Dev')
     healthy_number = mo.ui.number(value=60, label='Healthy Count')
-    healthy_mean = mo.ui.number(value=20, label='Healthy Mean')
-    healthy_std = mo.ui.number(value=5, label='Healthy Std Dev')
+
+    sick_mean = mo.ui.slider(start=0, stop=50, value=30, label='Sick Mean', show_value=True)
+    healthy_mean = mo.ui.slider(start=0, stop=50, value=20, label='Healthy Mean', show_value=True)
+
+    sick_std = mo.ui.slider(start=0.5, stop=10, value=5, label='Sick Std Dev', show_value=True)
+    healthy_std = mo.ui.slider(start=0.5, stop=10, value=5, label='Healthy Std Dev', show_value=True)
 
     mo.vstack([mo.hstack([sick_number, sick_mean, sick_std]),
               mo.hstack([healthy_number, healthy_mean, healthy_std])])
@@ -50,7 +52,6 @@ def _(mo):
 
 @app.cell
 def _(
-    alt,
     healthy_mean,
     healthy_number,
     healthy_std,
@@ -69,25 +70,11 @@ def _(
         'Condition': ['A'] * len(sick_data) + ['B'] * len(healthy_data)
     })
 
-    # Create density plot using Altair
-    # density_plot = alt.Chart(df).transform_density(
-    #     'Value',
-    #     as_=['Value', 'Density'],
-    # ).mark_line().encode(
-    #     x='Value:Q',
-    #     y='Density:Q',
-    #     color='Condition:N'
-    # ).properties(
-    #     title='Density Plot of Two Normal Distributions',
-    #     width=600,
-    #     height=400
-    # )
+    return df, healthy_data, sick_data
 
-    # density_plot
-    return healthy_data, sick_data
 
 @app.cell
-def _(df):
+def _(alt, df):
     density_points_plot = alt.Chart(df).transform_density(
         'Value',
         as_=['Value', 'Density'],
@@ -106,11 +93,12 @@ def _(df):
         height=400
     )
 
-    density_points_plot
-    return density_points_plot
+    # density_points_plot
+    return
+
 
 @app.cell
-def _(df, np, alt):
+def _(alt, cutoff_line, df):
     dp = alt.Chart(df).mark_point().encode(
         # x='Value:Q',
         x=alt.X('Value:Q'),
@@ -144,32 +132,35 @@ def _(df, np, alt):
     # )
     dp = dp + cutoff_line
     dp
+    return
+
 
 @app.cell
-def _():
-    cutoff_slider = mo.ui.slider(start=math.floor(min(df['Value'])), stop=math.ceil(max(df['Value'])), value=20, label='Cutoff Line Position')
+def _(df, math, mo):
+    cutoff_slider = mo.ui.slider(
+        start=math.floor(min(df['Value'])),
+        stop=math.ceil(max(df['Value'])),
+        value=20,
+        label='Cutoff Line Position',
+        show_value=True
+    )
     mo.hstack([cutoff_slider])
-    return cutoff_slider
+    return (cutoff_slider,)
+
 
 @app.cell
-def _(density_points_plot):
+def _(alt, cutoff_slider, pd):
     cutoff = cutoff_slider.value
     cutoff_line = alt.Chart(pd.DataFrame({'cutoff': [cutoff]})).mark_rule(color='red').encode(
     # cutoff_line = alt.Chart().mark_rule(color='red').encode(
         x='cutoff:Q',
         size=alt.value(2),
     )
-
-    # Combine the plots
-    cutoff_density_points_plot = density_points_plot + cutoff_line
-    cutoff_density_points_plot
-    # cutoff_line
-    return cutoff_density_points_plot
-
+    return cutoff, cutoff_line
 
 
 @app.cell
-def _(cutoff, sick_data, healthy_data, np, pd, alt):
+def _(cutoff, healthy_data, np, sick_data):
     def eval_cutoff(sick, healthy, cutoff):
         # Sensitivity and specificity calculation
         tp = np.sum(sick_data > cutoff)
@@ -182,30 +173,30 @@ def _(cutoff, sick_data, healthy_data, np, pd, alt):
         return sensitivity, specificity, tp, fn, tn, fp
     sensitivity, specificity, tp, fn, tn, fp = eval_cutoff(sick_data, healthy_data, cutoff)
 
-    # print(f"Sensitivity: {sensitivity:.2f}, Specificity: {specificity:.2f}")
-    # tp, fn, tn, fp
-    # sick_data
-    return sensitivity, specificity, tp, fn, tn, fp
+
+    return (eval_cutoff,)
+
 
 @app.cell
-def _(tp, fn, tn, fp):
+def _():
     # Confusion Matrix
     return
 
+
 @app.cell
-def _(sick_data, healthy_data):
+def _(df, eval_cutoff, healthy_data, math, pd, sick_data):
     # ROC Dataframe
     roc_data = []
     # for cutoff_val in range(math.floor(min(df['Value'])), math.ceil(max(df['Value'])), 20):
     for cutoff_val in range(0, math.ceil(max(df['Value'])), 1):
         sens, spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff_val)
         roc_data.append({'Cutoff': cutoff_val, 'True Positive Rate': sens, 'False Positive Rate': 1 - spec})
-    roc_data = pd.DataFrame(roc_data)
-    # roc_data
+    roc_data = pd.DataFrame(roc_data)    # roc_data
+    return (roc_data,)
 
 
 @app.cell
-def _():
+def _(alt, cutoff, eval_cutoff, healthy_data, pd, roc_data, sick_data):
     # ROC Curve
     roc = alt.Chart(roc_data).mark_line(point=True).encode(
         y=alt.Y('True Positive Rate:Q'),
@@ -222,10 +213,11 @@ def _():
     )
     roc = roc + current_dot
     roc
+    return
 
 
 @app.cell(disabled=True)
-def _(display, healthy_data, np, pd, plt, sick_data):
+def _(cutoff, display, healthy_data, np, pd, plt, sick_data):
     import seaborn as sns
     import ipywidgets as widgets
     from sklearn.metrics import roc_curve
