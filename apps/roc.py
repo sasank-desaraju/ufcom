@@ -112,25 +112,71 @@ def _(alt, cutoff_line, df):
         # Generate Gaussian jitter with a Box-Muller transform
         jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
     )
-    # gaussian_jitter = alt.Chart(source, title='Normally distributed jitter').mark_circle(size=8).encode(
-    #     y="Major_Genre:N",
-    #     x="IMDB_Rating:Q",
-    #     yOffset="jitter:Q",
-    #     color=alt.Color('Major_Genre:N').legend(None)
-    # ).transform_calculate(
-    #     # Generate Gaussian jitter with a Box-Muller transform
-    #     jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
-    # )
-    #
-    # uniform_jitter = gaussian_jitter.transform_calculate(
-    #     # Generate uniform jitter
-    #     jitter='random()'
-    # ).encode(
-    #     alt.Y('Major_Genre:N').axis(None)
-    # ).properties(
-    #     title='Uniformly distributed jitter'
-    # )
     dp = dp + cutoff_line
+    dp
+    return
+
+@app.cell
+def _(alt, df, cutoff_line):
+    # dens_sick = alt.Chart(df.loc[df['Condition'] == 'A']).transform_density(
+    #     'Value',
+    #     as_=['Value', 'Density'],
+    # ).mark_area(opacity=0.5).encode(
+    #     x=alt.X('Value:Q'),
+    #     y=alt.Y('Density:Q'),
+    #     # color='blue'
+    # )
+    # dens_healthy = alt.Chart(df.loc[df['Condition'] == 'B']).transform_density(
+    #     'Value',
+    #     as_=['Value', 'Density'],
+    # ).mark_area(opacity=0.5, color='orange').encode(
+    #     x=alt.X('Value:Q'),
+    #     y=alt.Y('Density:Q'),
+    #     # color='orange'
+    # )
+
+    dens = alt.Chart(df).transform_density(
+        'Value',
+        groupby=['Condition'],
+        as_=['Value', 'Density'],
+    ).mark_area(opacity=0.5).encode(
+        x=alt.X('Value:Q'),
+        y=alt.Y('Density:Q'),
+        color='Condition:N'
+    )
+    dens
+    return dens
+
+@app.cell
+def _(df):
+    both_dens = alt.Chart(df).transform_density(
+        'Value',
+        groupby=['Condition'],
+        as_=['Value', 'Density'],
+    ).mark_area(opacity=0.5).encode(
+        x=alt.X('Value:Q'),
+        y=alt.Y('Density:Q'),
+        color='Condition:N'
+    )
+    my_scatter = alt.Chart(df).mark_point().encode(
+        # x='Value:Q',
+        x=alt.X('Value:Q'),
+        yOffset="jitter:Q",
+        color='Condition:N'
+    ).properties(
+        title='Scatter Plot of Values',
+        # width=600,
+        height=50
+    ).transform_calculate(
+        # Generate Gaussian jitter with a Box-Muller transform
+        jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
+    )
+    both_dens = both_dens + my_scatter
+    my_scatter
+
+@app.cell
+def _(dp, dens):
+    comb = dp + dens
     dp
     return
 
