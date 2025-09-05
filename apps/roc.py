@@ -23,16 +23,17 @@ def _():
     import pandas as pd
     #import seaborn as sns
     import altair as alt
+    import math
     return alt, mo, np, pd, plt
 
 
 @app.cell
 def _(mo):
-    sick_number = mo.ui.number(value=30, label='Sick Count')
+    sick_number = mo.ui.number(value=60, label='Sick Count')
     sick_mean = mo.ui.number(value=30, label='Sick Mean')
     sick_std = mo.ui.number(value=5, label='Sick Std Dev')
-    healthy_number = mo.ui.number(value=30, label='Healthy Count')
-    healthy_mean = mo.ui.number(value=10, label='Healthy Mean')
+    healthy_number = mo.ui.number(value=60, label='Healthy Count')
+    healthy_mean = mo.ui.number(value=20, label='Healthy Mean')
     healthy_std = mo.ui.number(value=5, label='Healthy Std Dev')
 
     mo.vstack([mo.hstack([sick_number, sick_mean, sick_std]),
@@ -111,13 +112,17 @@ def _(df):
 @app.cell
 def _(df, np, alt):
     dp = alt.Chart(df).mark_point().encode(
-        x='Value:Q',
-        y=alt.value(0),  # Use a constant y-value since we're only plotting points
+        # x='Value:Q',
+        x=alt.X('Value:Q'),
+        yOffset="jitter:Q",
         color='Condition:N'
     ).properties(
         title='Scatter Plot of Values',
-        width=600,
-        height=400
+        # width=600,
+        height=50
+    ).transform_calculate(
+        # Generate Gaussian jitter with a Box-Muller transform
+        jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
     )
     # gaussian_jitter = alt.Chart(source, title='Normally distributed jitter').mark_circle(size=8).encode(
     #     y="Major_Genre:N",
@@ -137,25 +142,12 @@ def _(df, np, alt):
     # ).properties(
     #     title='Uniformly distributed jitter'
     # )
-
-    dp = alt.Chart(df).transform_jitter(
-        transform='y',  # Apply jitter on y-axis
-        mean=0,         # Center around 0
-        stdev=0.2       # Standard deviation for jitter
-    ).mark_point().encode(
-        x='Value:Q',
-        y=alt.value(0),  # Base y-value is 0, jitter will be added
-        color='Condition:N'
-    ).properties(
-        title='Scatter Plot of Values with Jitter',
-        width=600,
-        height=400
-    )
+    dp = dp + cutoff_line
     dp
 
 @app.cell
 def _():
-    cutoff_slider = mo.ui.slider(start=min(sick_mean.value, healthy_mean.value), stop=max(sick_mean.value, healthy_mean.value), value=20, label='Cutoff Line Position')
+    cutoff_slider = mo.ui.slider(start=math.floor(min(df['Value'])), stop=math.ceil(max(df['Value'])), value=20, label='Cutoff Line Position')
     mo.hstack([cutoff_slider])
     return cutoff_slider
 
@@ -178,20 +170,58 @@ def _(density_points_plot):
 
 @app.cell
 def _(cutoff, sick_data, healthy_data, np, pd, alt):
-    # Sensitivity and specificity calculation
-    tp = np.sum(sick_data > cutoff)
-    fn = np.sum(sick_data <= cutoff)
-    tn = np.sum(healthy_data <= cutoff)
-    fp = np.sum(healthy_data > cutoff)
+    def eval_cutoff(sick, healthy, cutoff):
+        # Sensitivity and specificity calculation
+        tp = np.sum(sick_data > cutoff)
+        fn = np.sum(sick_data <= cutoff)
+        tn = np.sum(healthy_data <= cutoff)
+        fp = np.sum(healthy_data > cutoff)
 
-    sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
-    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+        sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
+        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
+        return sensitivity, specificity, tp, fn, tn, fp
+    sensitivity, specificity, tp, fn, tn, fp = eval_cutoff(sick_data, healthy_data, cutoff)
 
-    print(f"Sensitivity: {sensitivity:.2f}, Specificity: {specificity:.2f}")
-    tp, fn, tn, fp
-    sick_data
-    return sensitivity, specificity
+    # print(f"Sensitivity: {sensitivity:.2f}, Specificity: {specificity:.2f}")
+    # tp, fn, tn, fp
+    # sick_data
+    return sensitivity, specificity, tp, fn, tn, fp
 
+@app.cell
+def _(tp, fn, tn, fp):
+    # Confusion Matrix
+    return
+
+@app.cell
+def _(sick_data, healthy_data):
+    # ROC Dataframe
+    roc_data = []
+    # for cutoff_val in range(math.floor(min(df['Value'])), math.ceil(max(df['Value'])), 20):
+    for cutoff_val in range(0, math.ceil(max(df['Value'])), 1):
+        sens, spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff_val)
+        roc_data.append({'Cutoff': cutoff_val, 'True Positive Rate': sens, 'False Positive Rate': 1 - spec})
+    roc_data = pd.DataFrame(roc_data)
+    # roc_data
+
+
+@app.cell
+def _():
+    # ROC Curve
+    roc = alt.Chart(roc_data).mark_line(point=True).encode(
+        y=alt.Y('True Positive Rate:Q'),
+        x=alt.X('False Positive Rate:Q'),
+        tooltip=['Cutoff', 'True Positive Rate', 'False Positive Rate']
+    )
+    _sens, _spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff)
+    # current_stats = pd.DataFrame({'Cutoff': cutoff, 'True Positive Rate': _sens, 'False Positive Rate': _spec})
+    current_stats = pd.DataFrame([[cutoff, _sens, 1 - _spec]], columns=['Cutoff', 'True Positive Rate', 'False Positive Rate'])
+    current_dot = alt.Chart(current_stats).mark_point(color='red', size=100).encode(
+        y=alt.Y('True Positive Rate:Q'),
+        x=alt.X('False Positive Rate:Q'),
+        tooltip=['Cutoff', 'True Positive Rate', 'False Positive Rate']
+    )
+    roc = roc + current_dot
+    roc
 
 
 @app.cell(disabled=True)
