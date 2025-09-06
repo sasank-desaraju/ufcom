@@ -29,6 +29,44 @@ def _():
 
 @app.cell
 def _(mo):
+    mo.md(r"""# How does a test tell us who's sick?""")
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    ## Motivation
+
+    When we run a diagnostic test that can tell us if someone is sick, what's going on under the hood?
+
+    Well, first, the inventors of the test need to find some biomarker number that tends to be pretty different between sick and healthy individuals. Then, they choose some cutoff value that splits these two populations the best they can.
+
+    So when we run a test, we're seeing on which side of this cutoff the patient's biomarker falls.
+
+    Let's explore this with an example and see how it connects to other concepts we know, such as a confusion matrix and ROC curve.
+    """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    ## Our Model
+
+    We'll model the values of the test biomarker as normally distributed with a mean and standard deviation that we can control.
+    We also have a box for the number of Sick and Healthy people.
+    """
+    )
+    return
+
+
+@app.cell
+def _(mo):
+    # Get population data
     sick_number = mo.ui.number(value=60, label='Sick Count')
     healthy_number = mo.ui.number(value=60, label='Healthy Count')
 
@@ -61,44 +99,31 @@ def _(
     sick_number,
     sick_std,
 ):
+    # Create dataframe
     sick_data = np.random.normal(sick_mean.value, sick_std.value, sick_number.value)
     healthy_data = np.random.normal(healthy_mean.value, healthy_std.value, healthy_number.value)
 
     # Create a DataFrame for Altair
     df = pd.DataFrame({
         'Value': np.concatenate([sick_data, healthy_data]),
-        'Condition': ['A'] * len(sick_data) + ['B'] * len(healthy_data)
+        'Condition': ['Sick'] * len(sick_data) + ['Healthy'] * len(healthy_data)
     })
-
     return df, healthy_data, sick_data
 
 
 @app.cell
-def _(alt, df):
-    density_points_plot = alt.Chart(df).transform_density(
-        'Value',
-        as_=['Value', 'Density'],
-        groupby=['Condition']
-    ).mark_point().encode(
-        x='Value:Q',
-        y='Density:Q',
-        color='Condition:N'
-    ) + alt.Chart(df).mark_point(filled=True, opacity=0.5).encode(
-        x='Value:Q',
-        y='Density:Q',
-        color='Condition:N'
-    ).properties(
-        title='Density and Points Plot of Values',
-        width=600,
-        height=400
+def _(mo):
+    mo.md(
+        r"""
+    Here we see a scatter plot and a Gaussian of the values.
+    Sick and Healthy patients have values that tend to be different, though there is some overlap.
+    """
     )
-
-    # density_points_plot
     return
 
 
 @app.cell
-def _(alt, cutoff_line, df):
+def _(alt, cutoff_button, cutoff_line, df):
     dp = alt.Chart(df).mark_point().encode(
         # x='Value:Q',
         x=alt.X('Value:Q'),
@@ -112,72 +137,81 @@ def _(alt, cutoff_line, df):
         # Generate Gaussian jitter with a Box-Muller transform
         jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
     )
-    dp = dp + cutoff_line
+
+    # BUG: Since the random() above is recalculated every time the cutoff_line changes, it all jitters as you change the slider
+    # This could be fixed by making it so that the below plotting happens in a different cell
+    if cutoff_button.value:
+        dp = dp + cutoff_line
     dp
     return
 
+
 @app.cell
-def _(alt, df, cutoff_line):
-    # dens_sick = alt.Chart(df.loc[df['Condition'] == 'A']).transform_density(
+def _(alt, cutoff_button, cutoff_line, df):
+    dens_sick = alt.Chart(df.loc[df['Condition'] == 'Sick']).transform_density(
+        'Value',
+        as_=['Value', 'Density'],
+    ).mark_area(opacity=0.5, color='orange').encode(
+        x=alt.X('Value:Q'),
+        y=alt.Y('Density:Q'),
+        # color='blue'
+    )
+    dens_healthy = alt.Chart(df.loc[df['Condition'] == 'Healthy']).transform_density(
+        'Value',
+        as_=['Value', 'Density'],
+    ).mark_area(opacity=0.5).encode(
+        x=alt.X('Value:Q'),
+        y=alt.Y('Density:Q'),
+        # color='orange'
+    )
+    dens = dens_healthy + dens_sick
+    dens = dens.properties(
+        title='Density Distribution'
+    )
+
+    # This plot is not accurate for some reason.
+    # The overall mass of A (sick) looks far larger than that of B (healthy)
+    # dens = alt.Chart(df).transform_density(
     #     'Value',
+    #     groupby=['Condition'],
     #     as_=['Value', 'Density'],
     # ).mark_area(opacity=0.5).encode(
     #     x=alt.X('Value:Q'),
     #     y=alt.Y('Density:Q'),
-    #     # color='blue'
+    #     color='Condition:N'
     # )
-    # dens_healthy = alt.Chart(df.loc[df['Condition'] == 'B']).transform_density(
-    #     'Value',
-    #     as_=['Value', 'Density'],
-    # ).mark_area(opacity=0.5, color='orange').encode(
-    #     x=alt.X('Value:Q'),
-    #     y=alt.Y('Density:Q'),
-    #     # color='orange'
-    # )
-
-    dens = alt.Chart(df).transform_density(
-        'Value',
-        groupby=['Condition'],
-        as_=['Value', 'Density'],
-    ).mark_area(opacity=0.5).encode(
-        x=alt.X('Value:Q'),
-        y=alt.Y('Density:Q'),
-        color='Condition:N'
-    )
+    if cutoff_button.value:
+        dens = dens + cutoff_line
     dens
-    return dens
+    return
+
 
 @app.cell
-def _(df):
-    both_dens = alt.Chart(df).transform_density(
-        'Value',
-        groupby=['Condition'],
-        as_=['Value', 'Density'],
-    ).mark_area(opacity=0.5).encode(
-        x=alt.X('Value:Q'),
-        y=alt.Y('Density:Q'),
-        color='Condition:N'
+def _(mo):
+    mo.md(
+        r"""
+    ## Cutoff
+
+    Now, let's add our cutoff value.
+
+    Go ahead and click the button below to show what our cutoff value is.
+    """
     )
-    my_scatter = alt.Chart(df).mark_point().encode(
-        # x='Value:Q',
-        x=alt.X('Value:Q'),
-        yOffset="jitter:Q",
-        color='Condition:N'
-    ).properties(
-        title='Scatter Plot of Values',
-        # width=600,
-        height=50
-    ).transform_calculate(
-        # Generate Gaussian jitter with a Box-Muller transform
-        jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
-    )
-    both_dens = both_dens + my_scatter
-    my_scatter
+    return
+
 
 @app.cell
-def _(dp, dens):
-    comb = dp + dens
-    dp
+def _(mo):
+    cutoff_button = mo.ui.button(value=False, on_click=lambda value: True, label="Add Cutoff Value")
+    cutoff_button
+    return (cutoff_button,)
+
+
+@app.cell(hide_code=True)
+def _(cutoff_button, mo):
+    # This doesn't work :/
+    if cutoff_button.value == True:
+        mo.md(r"""Notice that the cutoff value is now shown on the plots above!""")
     return
 
 
@@ -186,6 +220,8 @@ def _(df, math, mo):
     cutoff_slider = mo.ui.slider(
         start=math.floor(min(df['Value'])),
         stop=math.ceil(max(df['Value'])),
+        # start=0,
+        # stop=50,
         value=20,
         label='Cutoff Line Position',
         show_value=True
@@ -206,7 +242,8 @@ def _(alt, cutoff_slider, pd):
 
 
 @app.cell
-def _(cutoff, healthy_data, np, sick_data):
+def _(healthy_data, np, sick_data):
+    # Helper function for getting stats from cutoff
     def eval_cutoff(sick, healthy, cutoff):
         # Sensitivity and specificity calculation
         tp = np.sum(sick_data > cutoff)
@@ -217,38 +254,100 @@ def _(cutoff, healthy_data, np, sick_data):
         sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
         specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
         return sensitivity, specificity, tp, fn, tn, fp
-    sensitivity, specificity, tp, fn, tn, fp = eval_cutoff(sick_data, healthy_data, cutoff)
-
-
     return (eval_cutoff,)
 
 
-@app.cell
-def _():
-    # Confusion Matrix
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    Note the confusion matrix.
+    As the cutoff value splits the distributions as seen above, we get improved results with our confusion matrix.
+    """
+    )
     return
 
 
 @app.cell
-def _(df, eval_cutoff, healthy_data, math, pd, sick_data):
-    # ROC Dataframe
+def _(alt, cutoff, cutoff_button, eval_cutoff, healthy_data, pd, sick_data):
+    # Confusion Matrix
+    _sens, _spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff)
+    _data = {
+        'Actual': ['Positive', 'Positive', 'Negative', 'Negative'],
+        'Predicted': ['Positive', 'Negative', 'Positive', 'Negative'],
+        'Count': [_tp, _fn, _fp, _tn]
+    }
+    conf_df = pd.DataFrame(_data)
+    # Create the heatmap using Altair
+    heatmap = alt.Chart(conf_df).mark_rect(color='blue').encode(
+        x='Predicted:O',
+        y='Actual:O',
+        color='Count:Q'
+    ).properties(
+        width=300,
+        height=300,
+        title='Confusion Matrix'
+    )
+
+    # Add text labels
+    text = heatmap.mark_text().encode(
+        text='Count:Q',
+        color=alt.value('black')  # Set text color to black for better readability
+    )
+
+    # Combine the heatmap and text labels
+    final_heatmap = heatmap + text
+
+    final_heatmap if cutoff_button.value else print("")
+    return
+
+
+@app.cell
+def _(alt, df, eval_cutoff, healthy_data, math, pd, sick_data):
+    # Static ROC Dataframe and Curve
     roc_data = []
     # for cutoff_val in range(math.floor(min(df['Value'])), math.ceil(max(df['Value'])), 20):
     for cutoff_val in range(0, math.ceil(max(df['Value'])), 1):
         sens, spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff_val)
         roc_data.append({'Cutoff': cutoff_val, 'True Positive Rate': sens, 'False Positive Rate': 1 - spec})
     roc_data = pd.DataFrame(roc_data)    # roc_data
-    return (roc_data,)
+
+    # roc = alt.Chart(roc_data).mark_line(point=True).encode(
+    roc = alt.Chart(
+        roc_data,
+        title=alt.Title(
+            "ROC Curve",
+            subtitle="Receiver Operating Characteristic Curve"
+        )
+    ).mark_line(point=True).encode(
+        y=alt.Y('True Positive Rate:Q'),
+        x=alt.X('False Positive Rate:Q'),
+        order='Cutoff',
+        tooltip=['Cutoff', 'True Positive Rate', 'False Positive Rate']
+    # ).properties(
+        # width=600
+    )
+    return (roc,)
 
 
 @app.cell
-def _(alt, cutoff, eval_cutoff, healthy_data, pd, roc_data, sick_data):
-    # ROC Curve
-    roc = alt.Chart(roc_data).mark_line(point=True).encode(
-        y=alt.Y('True Positive Rate:Q'),
-        x=alt.X('False Positive Rate:Q'),
-        tooltip=['Cutoff', 'True Positive Rate', 'False Positive Rate']
-    )
+def _(mo):
+    mo.md(r"""We can appreciate how the ROC curve is created by marking the true positive rate and false positive rate as we iterate through our cutoff value.""")
+    return
+
+
+@app.cell
+def _(
+    alt,
+    cutoff,
+    cutoff_button,
+    eval_cutoff,
+    healthy_data,
+    pd,
+    roc,
+    sick_data,
+):
+    # ROC Current Value and Display
     _sens, _spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff)
     # current_stats = pd.DataFrame({'Cutoff': cutoff, 'True Positive Rate': _sens, 'False Positive Rate': _spec})
     current_stats = pd.DataFrame([[cutoff, _sens, 1 - _spec]], columns=['Cutoff', 'True Positive Rate', 'False Positive Rate'])
@@ -257,8 +356,87 @@ def _(alt, cutoff, eval_cutoff, healthy_data, pd, roc_data, sick_data):
         x=alt.X('False Positive Rate:Q'),
         tooltip=['Cutoff', 'True Positive Rate', 'False Positive Rate']
     )
-    roc = roc + current_dot
-    roc
+    current_roc = roc + current_dot
+    current_roc if cutoff_button.value else print('')
+    return
+
+
+@app.cell
+def _():
+    # current_roc | final_heatmap
+    # final_heatmap & current_roc
+    return
+
+
+@app.cell
+def _(mo):
+    mo.md(
+        r"""
+    ## Questions
+
+    1. What cutoff value should we choose? Is there a "best" value? Could it depend on the use case?
+
+    2. Why can't we just get it right? Is there anything we can do statistically to make the test more accurate? What is blocking the test from being more accurate?
+    """
+    )
+    return
+
+
+@app.cell(disabled=True)
+def _(alt, df):
+    # Scatter plot and PDF on same plot
+    both_dens = alt.Chart(df).transform_density(
+        'Value',
+        groupby=['Condition'],
+        as_=['Value', 'Density'],
+    ).mark_area(opacity=0.5).encode(
+        x=alt.X('Value:Q'),
+        y=alt.Y('Density:Q'),
+        color='Condition:N'
+    )
+    _df = df.copy()
+    #_df = _df['Asdf'] = 1
+    my_scatter = alt.Chart(_df).mark_point().encode(
+        # x='Value:Q',
+        # y=alt.Y('Asdf:Q'),
+        x=alt.X('Value:Q'),
+        yOffset="jitter:Q",
+        color='Condition:N'
+    ).properties(
+        title='Scatter Plot of Values',
+        # width=600,
+        height=50
+    ).transform_calculate(
+        # Generate Gaussian jitter with a Box-Muller transform
+        jitter="sqrt(-2*log(random()))*cos(2*PI*random())"
+    )
+    # both_dens = both_dens + my_scatter
+    # both_dens
+    # my_scatter
+    return
+
+
+@app.cell(disabled=True)
+def _(alt, df):
+    density_points_plot = alt.Chart(df).transform_density(
+        'Value',
+        as_=['Value', 'Density'],
+        groupby=['Condition']
+    ).mark_point().encode(
+        x='Value:Q',
+        y='Density:Q',
+        color='Condition:N'
+    ) + alt.Chart(df).mark_point(filled=True, opacity=0.5).encode(
+        x='Value:Q',
+        y='Density:Q',
+        color='Condition:N'
+    ).properties(
+        title='Density and Points Plot of Values',
+        width=600,
+        height=400
+    )
+
+    # density_points_plot
     return
 
 
