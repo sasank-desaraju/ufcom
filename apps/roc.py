@@ -305,6 +305,11 @@ def _(alt, cutoff, cutoff_button, eval_cutoff, healthy_data, pd, sick_data):
 @app.cell
 def _(alt, df, eval_cutoff, healthy_data, math, pd, sick_data):
     # Static ROC Dataframe and Curve
+    # TODO: Add Area Under Curve (AUC) to the ROC curve.
+    # This will show how this statistic is inherent to how well the biomarker or whatever discriminates between the groups
+    # And how it doesn't change based off of cutoff value choice
+    # Calculate in this cell. Maybe by doing a triangle sum from all the sens/(1-spec) values.
+    # Implement as an atl.Chart.mark_area() of the already existing Chart but try to add the number in the area
     roc_data = []
     # for cutoff_val in range(math.floor(min(df['Value'])), math.ceil(max(df['Value'])), 20):
     for cutoff_val in range(0, math.ceil(max(df['Value'])), 1):
