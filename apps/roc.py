@@ -2,9 +2,11 @@
 # requires-python = ">=3.11"
 # dependencies = [
 #     "altair==5.5.0",
+#     "ipywidgets==8.1.7",
 #     "matplotlib==3.10.5",
 #     "numpy==2.3.2",
 #     "pandas==2.3.2",
+#     "scikit-learn==1.7.2",
 #     "seaborn==0.13.2",
 # ]
 # ///
@@ -194,7 +196,7 @@ def _(mo):
 
     Now, let's add our cutoff value.
 
-    Go ahead and click the button below to show what our cutoff value is.
+    Go ahead and **click the button below** to show what our cutoff value is.
     """
     )
     return
@@ -205,14 +207,6 @@ def _(mo):
     cutoff_button = mo.ui.button(value=False, on_click=lambda value: True, label="Add Cutoff Value")
     cutoff_button
     return (cutoff_button,)
-
-
-@app.cell(hide_code=True)
-def _(cutoff_button, mo):
-    # This doesn't work :/
-    if cutoff_button.value == True:
-        mo.md(r"""Notice that the cutoff value is now shown on the plots above!""")
-    return
 
 
 @app.cell
@@ -228,6 +222,14 @@ def _(df, math, mo):
     )
     mo.hstack([cutoff_slider])
     return (cutoff_slider,)
+
+
+@app.cell(hide_code=True)
+def _(cutoff_button, mo):
+    # This doesn't work :/
+    if cutoff_button.value == True:
+        mo.md(r"""Notice that the cutoff value is now shown on the plots above!""")
+    return
 
 
 @app.cell
