@@ -28,7 +28,7 @@ def _():
     from scipy import stats
     import altair as alt
     import math
-    return alt, mo, np, pd
+    return alt, mo, np, pd, stats
 
 
 @app.cell(hide_code=True)
@@ -71,6 +71,7 @@ def _(mo, tabs):
         **Clinical Scenario:** Comparing two intubation techniques - direct laryngoscopy vs a blindfolded technique.
 
         Understanding the difference between **odds** and **risk** is crucial in medical decision-making:
+
         - **Risk (probability)** = Deaths / Total patients in each group
         - **Odds** = Deaths / Survivors in each group  
         - **Odds Ratio** = (Odds in exposed group) / (Odds in control group)
@@ -92,9 +93,9 @@ def _(mo, tabs):
     blind_deaths = mo.ui.slider(1, 200, value=10, label="Blindfolded Deaths", show_value=True)
     blind_survivors = mo.ui.slider(50, 500, value=200, label="Blindfolded Survivors", show_value=True)
 
-    mo.vstack([
-        mo.hstack([direct_deaths, direct_survivors]),
-        mo.hstack([blind_deaths, blind_survivors])
+    mo.hstack([
+        mo.vstack([direct_deaths, direct_survivors]),
+        mo.vstack([blind_deaths, blind_survivors])
     ])
     return blind_deaths, blind_survivors, direct_deaths, direct_survivors
 
@@ -290,96 +291,6 @@ def _(alt, mo, odds_ratio, pd, relative_risk, tabs):
 
 
 @app.cell
-def _(
-    alt,
-    blind_risk,
-    direct_risk,
-    mo,
-    np,
-    odds_ratio,
-    pd,
-    relative_risk,
-    tabs,
-):
-    mo.stop(tabs.value != "Laryngoscopy (Odds)")
-
-    # Educational visualization showing the relationship between OR and RR
-    # Create a range of baseline risks to show how OR and RR relate
-    baseline_risks = np.linspace(0.01, 0.5, 50)
-
-    # For a fixed odds ratio, calculate what the relative risk would be at different baseline risks
-    or_fixed = odds_ratio  # Current odds ratio from our data
-    rr_values = []
-
-    for baseline_risk in baseline_risks:
-        # Convert baseline risk to odds
-        baseline_odds = baseline_risk / (1 - baseline_risk)
-
-        # Apply our odds ratio
-        new_odds = baseline_odds * or_fixed
-
-        # Convert back to risk
-        new_risk = new_odds / (1 + new_odds)
-
-        # Calculate relative risk
-        rr = new_risk / baseline_risk
-        rr_values.append(rr)
-
-    relationship_data = pd.DataFrame({
-        'Baseline_Risk': baseline_risks * 100,  # Convert to percentage
-        'Relative_Risk': rr_values,
-        'Odds_Ratio': [or_fixed] * len(baseline_risks)
-    })
-
-    # Plot showing relationship between OR and RR
-    rr_line = alt.Chart(relationship_data).mark_line(color='blue', strokeWidth=3).encode(
-        x=alt.X('Baseline_Risk:Q', title='Baseline Risk (%)'),
-        y=alt.Y('Relative_Risk:Q', title='Relative Risk'),
-        tooltip=['Baseline_Risk:Q', 'Relative_Risk:Q']
-    )
-
-    or_line = alt.Chart(relationship_data).mark_line(color='red', strokeDash=[5, 5], strokeWidth=2).encode(
-        x='Baseline_Risk:Q',
-        y='Odds_Ratio:Q',
-        tooltip=['Baseline_Risk:Q', 'Odds_Ratio:Q']
-    )
-
-    relationship_viz = (rr_line + or_line).properties(
-        title=f'OR vs RR Relationship (OR = {or_fixed:.2f})',
-        width=500,
-        height=300
-    ).resolve_scale(y='independent')
-
-    explanation = mo.md(f"""
-    **Plot Elements Explained:**
-
-    - **🔵 Blue solid line (Relative Risk):** Shows how RR would vary across hypothetical studies with different baseline risks but the same OR = {or_fixed:.2f}
-    - **🔴 Red dotted line (Odds Ratio):** Shows the constant OR = {or_fixed:.2f} that remains unchanged regardless of baseline risk
-
-    **Key Insights:**
-
-    1. **When is OR ≈ RR?** When baseline risk is low (<10%) - the lines converge on the left
-    2. **As baseline risk increases:** OR and RR diverge more - the blue line moves away from the red line
-    3. **Our actual study values:** OR = {odds_ratio:.2f}, RR = {relative_risk:.2f} (at {min(direct_risk, blind_risk):.1%} baseline risk)
-    4. **Theoretical prediction:** At our baseline risk of {min(direct_risk, blind_risk):.1%}, theory predicts RR ≈ OR since risk is low
-    5. **Why this matters:** OR overestimates RR when baseline risk is high, leading to misinterpretation of effect sizes
-
-    **Bottom line:** This theoretical relationship shows why you need to know baseline risk to properly interpret odds ratios from studies.
-    """)
-
-    mo.vstack([
-        mo.md("### Odds Ratio vs Relative Risk Relationship"),
-        mo.md("""
-        **Advanced Point:** When baseline risk is high (>10% of event with safest treatment), odds ratios can be misleading. An OR of 2.0 might suggest "double the risk," but if baseline risk is 30%, the actual relative risk is only ~1.5 (50% increase). However, the absolute impact is often larger - 16 more patients per 100 have complications vs. only 3 more per 100 when baseline risk is low. This is why knowing baseline risk is crucial for clinical decision-making.
-        """),
-        relationship_viz,
-        mo.md(""),  # Add some whitespace
-        explanation
-    ])
-    return
-
-
-@app.cell
 def _(mo, tabs):
     mo.stop(tabs.value != "Whipple (Tests)")
     mo.md(
@@ -401,15 +312,15 @@ def _(mo, tabs):
 
 
 @app.cell
-def _(mo, np, tabs):
+def _(mo, tabs):
     mo.stop(tabs.value != "Whipple (Tests)")
-    
+
     # Interactive controls for sample data generation
     n_patients = mo.ui.slider(20, 100, value=60, label="Total patients", show_value=True)
     group1_mean = mo.ui.slider(10, 50, value=25, label="Group 1 mean opioid usage (mg)", show_value=True)
     group2_mean = mo.ui.slider(10, 50, value=35, label="Group 2 mean opioid usage (mg)", show_value=True) 
     effect_size = mo.ui.slider(0.1, 2.0, value=0.8, step=0.1, label="Effect size (Cohen's d)", show_value=True)
-    
+
     mo.vstack([
         mo.hstack([n_patients, effect_size]),
         mo.hstack([group1_mean, group2_mean])
@@ -418,41 +329,51 @@ def _(mo, np, tabs):
 
 
 @app.cell
-def _(alt, effect_size, group1_mean, group2_mean, mo, n_patients, np, pd, stats, tabs):
+def _(
+    effect_size,
+    group1_mean,
+    group2_mean,
+    mo,
+    n_patients,
+    np,
+    pd,
+    stats,
+    tabs,
+):
     mo.stop(tabs.value != "Whipple (Tests)")
-    
+
     # Generate sample data
     np.random.seed(42)  # For reproducible results
-    
+
     n_group1 = n_patients.value // 2
     n_group2 = n_patients.value - n_group1
-    
+
     # Calculate standard deviation based on effect size
     # Cohen's d = (mean1 - mean2) / pooled_std
     mean_diff = abs(group2_mean.value - group1_mean.value)
     pooled_std = mean_diff / effect_size.value if effect_size.value > 0 else 10
-    
+
     # Generate data
     group1_data = np.random.normal(group1_mean.value, pooled_std, n_group1)
     group2_data = np.random.normal(group2_mean.value, pooled_std, n_group2)
-    
+
     # Ensure no negative values (opioid usage can't be negative)
     group1_data = np.maximum(group1_data, 0)
     group2_data = np.maximum(group2_data, 0)
-    
+
     # Create combined dataset
     whipple_data = pd.DataFrame({
         'patient_id': range(1, n_patients.value + 1),
         'group': ['GETA + Regional'] * n_group1 + ['GETA + Ketamine'] * n_group2,
         'opioid_usage': np.concatenate([group1_data, group2_data])
     })
-    
+
     # Perform statistical tests
     t_stat, t_pvalue = stats.ttest_ind(group1_data, group2_data)
-    
+
     # Also perform Mann-Whitney U test (non-parametric alternative)
     u_stat, u_pvalue = stats.mannwhitneyu(group1_data, group2_data, alternative='two-sided')
-    
+
     # Calculate descriptive statistics
     group1_stats = {
         'mean': np.mean(group1_data),
@@ -460,22 +381,41 @@ def _(alt, effect_size, group1_mean, group2_mean, mo, n_patients, np, pd, stats,
         'median': np.median(group1_data),
         'n': n_group1
     }
-    
+
     group2_stats = {
         'mean': np.mean(group2_data),
         'std': np.std(group2_data, ddof=1),
         'median': np.median(group2_data),
         'n': n_group2
     }
-    
+
     whipple_data
-    return group1_data, group1_stats, group2_data, group2_stats, t_pvalue, t_stat, u_pvalue, u_stat, whipple_data
+    return (
+        group1_stats,
+        group2_stats,
+        t_pvalue,
+        t_stat,
+        u_pvalue,
+        u_stat,
+        whipple_data,
+    )
 
 
 @app.cell
-def _(alt, group1_stats, group2_stats, mo, t_pvalue, t_stat, tabs, u_pvalue, u_stat, whipple_data):
+def _(
+    alt,
+    group1_stats,
+    group2_stats,
+    mo,
+    t_pvalue,
+    t_stat,
+    tabs,
+    u_pvalue,
+    u_stat,
+    whipple_data,
+):
     mo.stop(tabs.value != "Whipple (Tests)")
-    
+
     # Create box plot visualization
     box_plot = alt.Chart(whipple_data).mark_boxplot(size=60).encode(
         x=alt.X('group:N', title='Anesthesia Group'),
@@ -487,7 +427,7 @@ def _(alt, group1_stats, group2_stats, mo, t_pvalue, t_stat, tabs, u_pvalue, u_s
         width=400,
         height=300
     )
-    
+
     # Add individual points
     strip_plot = alt.Chart(whipple_data).mark_circle(
         opacity=0.6,
@@ -499,64 +439,71 @@ def _(alt, group1_stats, group2_stats, mo, t_pvalue, t_stat, tabs, u_pvalue, u_s
                                                  range=['#FF6B6B', '#4ECDC4'])),
         tooltip=['patient_id:O', 'group:N', 'opioid_usage:Q']
     )
-    
+
     combined_plot = box_plot + strip_plot
-    
+
     # Statistical results summary
     stats_summary = mo.md(f"""
     **Descriptive Statistics:**
-    
+
     **GETA + Regional (n={group1_stats['n']})**
+
     - Mean: {group1_stats['mean']:.1f} ± {group1_stats['std']:.1f} mg
     - Median: {group1_stats['median']:.1f} mg
-    
+
     **GETA + Ketamine (n={group2_stats['n']})**
+
     - Mean: {group2_stats['mean']:.1f} ± {group2_stats['std']:.1f} mg  
     - Median: {group2_stats['median']:.1f} mg
-    
+
     **Statistical Test Results:**
-    
+
     **Independent t-test:**
+
     - t-statistic: {t_stat:.3f}
     - p-value: {t_pvalue:.4f}
     - Result: {'Significant' if t_pvalue < 0.05 else 'Not significant'} (α = 0.05)
-    
+
     **Mann-Whitney U test:**
+
     - U-statistic: {u_stat:.1f}
     - p-value: {u_pvalue:.4f}
     - Result: {'Significant' if u_pvalue < 0.05 else 'Not significant'} (α = 0.05)
     """)
-    
+
     mo.hstack([combined_plot, stats_summary], gap=0.5)
-    return box_plot, combined_plot, stats_summary, strip_plot
+    return
 
 
 @app.cell
 def _(mo, tabs):
     mo.stop(tabs.value != "Whipple (Tests)")
-    
+
     mo.md("""
     ### Statistical Test Selection Guide
-    
+
     **Most Appropriate Test: Independent t-test (two-sample t-test)**
-    
+
     **Why this test is correct:**
-    
+
     1. **Independent groups**: Patients are randomized to different anesthesia groups
     2. **Continuous outcome**: Opioid usage is measured in mg (continuous variable)
     3. **Two groups**: Comparing exactly 2 treatment arms
     4. **Unpaired data**: Each patient receives only one type of anesthesia
-    
+
     **Key assumptions to check:**
+
     - **Normality**: Opioid usage should be approximately normally distributed in each group
     - **Equal variances**: Groups should have similar variability (can use Welch's t-test if violated)
     - **Independence**: Random assignment ensures this
-    
+
     **Alternative tests to consider:**
+
     - **Mann-Whitney U test**: If data is not normally distributed (non-parametric alternative)
     - **Welch's t-test**: If variances are unequal between groups
-    
+
     **Tests that would be INCORRECT:**
+
     - **ANOVA**: Only needed for ≥3 groups
     - **Paired t-test**: Would be used if same patients received both treatments
     - **Chi-square**: Used for categorical outcomes, not continuous
