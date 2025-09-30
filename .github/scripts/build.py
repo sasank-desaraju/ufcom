@@ -21,6 +21,7 @@ The exported files will be placed in the specified output directory (default: _s
 # ///
 
 import subprocess
+import shutil
 from typing import List, Union
 from pathlib import Path
 
@@ -175,6 +176,43 @@ def _export(folder: Path, output_dir: Path, as_app: bool=False) -> List[dict]:
     logger.info(f"Successfully exported {len(notebook_data)} out of {len(notebooks)} files from {folder}")
     return notebook_data
 
+def _copy_static_assets(output_dir: Path, assets_dir: Path = Path("assets")) -> None:
+    """Copy static assets to the output directory.
+
+    This function copies all static assets (images, CSS, JS, etc.) from the assets
+    directory to the output directory, preserving the directory structure.
+
+    Args:
+        output_dir (Path): Directory where the assets will be copied
+        assets_dir (Path, optional): Path to the assets directory. Defaults to Path("assets").
+
+    Returns:
+        None
+    """
+    if not assets_dir.exists():
+        logger.debug(f"Assets directory not found: {assets_dir}")
+        return
+
+    logger.info(f"Copying static assets from {assets_dir} to {output_dir}")
+
+    try:
+        # Create destination directory
+        dest_dir = output_dir / "assets"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        # Copy all files from assets directory
+        for item in assets_dir.iterdir():
+            if item.is_file():
+                shutil.copy2(item, dest_dir / item.name)
+                logger.debug(f"Copied {item.name}")
+            elif item.is_dir():
+                shutil.copytree(item, dest_dir / item.name, dirs_exist_ok=True)
+                logger.debug(f"Copied directory {item.name}")
+
+        logger.info("Successfully copied static assets")
+    except Exception as e:
+        logger.error(f"Error copying static assets: {e}")
+
 def main(
     output_dir: Union[str, Path] = "_site",
     template: Union[str, Path] = "templates/tailwind.html.j2",
@@ -216,6 +254,9 @@ def main(
     if not notebooks_data and not apps_data:
         logger.warning("No notebooks or apps found!")
         return
+
+    # Copy static assets to output directory
+    _copy_static_assets(output_dir)
 
     # Generate the index.html file that lists all notebooks and apps
     _generate_index(output_dir=output_dir, notebooks_data=notebooks_data, apps_data=apps_data, template_file=template_file)
