@@ -13,7 +13,7 @@
 
 import marimo
 
-__generated_with = "0.14.17"
+__generated_with = "0.16.4"
 app = marimo.App(width="medium")
 
 
@@ -557,6 +557,18 @@ def _(cutoff, display, healthy_data, np, pd, plt, sick_data):
 
     # Initial plot and table
     update_all()
+    return
+
+
+@app.cell(hide_code=True)
+def _(mo):
+    mo.md(
+        r"""
+    Please send any feedback to Sasank at sasank.desaraju@ufl.edu.
+
+    He'd love to hear what's helpful, not helpful, and any suggestions for future notebooks!
+    """
+    )
     return
 
 
