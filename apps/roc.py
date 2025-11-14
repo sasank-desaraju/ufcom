@@ -8,6 +8,7 @@
 #     "pandas==2.3.2",
 #     "scikit-learn==1.7.2",
 #     "seaborn==0.13.2",
+#     "marimo==0.15.4",
 # ]
 # ///
 
