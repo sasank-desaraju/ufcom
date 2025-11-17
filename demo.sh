@@ -11,7 +11,9 @@
 #   -s: Silent mode
 #   -S: Show error if fails
 #   -f: Fail silently on server errors
-curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Disabled the uv install line since I have it installed everywhere.
+# curl -LsSf https://astral.sh/uv/install.sh | sh
 
 # Run the build.py script using uv
 # This is interesting as it works without explicitly installing
@@ -27,3 +29,4 @@ curl -LsSf https://astral.sh/uv/install.sh | sh
 uv run build.py \
        --output_dir '_site' \
        --template 'templates/tailwind.html.j2'
+uv run python -m http.server -d _site/
