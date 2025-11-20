@@ -14,7 +14,7 @@
 
 import marimo
 
-__generated_with = "0.15.4"
+__generated_with = "0.17.8"
 app = marimo.App(width="medium")
 
 
@@ -32,14 +32,15 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(r"""# How does a test tell us who's sick?""")
+    mo.md(r"""
+    # How does a test tell us who's sick?
+    """)
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Motivation
 
     When we run a diagnostic test that can tell us if someone is sick, what's going on under the hood?
@@ -49,21 +50,18 @@ def _(mo):
     So when we run a test, we're seeing on which side of this cutoff the patient's biomarker falls.
 
     Let's explore this with an example and see how it connects to other concepts we know, such as a confusion matrix and ROC curve.
-    """
-    )
+    """)
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Our Model
 
     We'll model the values of the test biomarker as normally distributed with a mean and standard deviation that we can control.
     We also have a box for the number of Sick and Healthy people.
-    """
-    )
+    """)
     return
 
 
@@ -116,12 +114,10 @@ def _(
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Here we see a scatter plot and a Gaussian of the values.
     Sick and Healthy patients have values that tend to be different, though there is some overlap.
-    """
-    )
+    """)
     return
 
 
@@ -191,21 +187,19 @@ def _(alt, cutoff_button, cutoff_line, df):
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Cutoff
 
     Now, let's add our cutoff value.
 
     Go ahead and **click the button below** to show what our cutoff value is.
-    """
-    )
+    """)
     return
 
 
 @app.cell
 def _(mo):
-    cutoff_button = mo.ui.button(value=False, on_click=lambda value: True, label="Add Cutoff Value")
+    cutoff_button = mo.ui.button(value=True, on_click=lambda value: True, label="Add Cutoff Value")
     cutoff_button
     return (cutoff_button,)
 
@@ -217,7 +211,7 @@ def _(df, math, mo):
         stop=math.ceil(max(df['Value'])),
         # start=0,
         # stop=50,
-        value=20,
+        value=24,
         label='Cutoff Line Position',
         show_value=True
     )
@@ -262,12 +256,10 @@ def _(healthy_data, np, sick_data):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Note the confusion matrix.
     As the cutoff value splits the distributions as seen above, we get improved results with our confusion matrix.
-    """
-    )
+    """)
     return
 
 
@@ -340,7 +332,9 @@ def _(alt, df, eval_cutoff, healthy_data, math, pd, sick_data):
 
 @app.cell
 def _(mo):
-    mo.md(r"""We can appreciate how the ROC curve is created by marking the true positive rate and false positive rate as we iterate through our cutoff value.""")
+    mo.md(r"""
+    We can appreciate how the ROC curve is created by marking the true positive rate and false positive rate as we iterate through our cutoff value.
+    """)
     return
 
 
@@ -378,15 +372,13 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Questions
 
     1. What cutoff value should we choose? Is there a "best" value? Could it depend on the use case?
 
     2. Why can't we just get it right? Is there anything we can do statistically to make the test more accurate? What is blocking the test from being more accurate?
-    """
-    )
+    """)
     return
 
 
@@ -563,13 +555,11 @@ def _(cutoff, display, healthy_data, np, pd, plt, sick_data):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Please send any feedback to Sasank at sasank.desaraju@ufl.edu.
 
     He'd love to hear what's helpful, not helpful, and any suggestions for future notebooks!
-    """
-    )
+    """)
     return
 
 
