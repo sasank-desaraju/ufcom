@@ -8,13 +8,14 @@
 #     "pandas==2.3.2",
 #     "scikit-learn==1.7.2",
 #     "seaborn==0.13.2",
-#     "marimo==0.15.4",
+#     "marimo>=0.17.0",
+#     "pyzmq",
 # ]
 # ///
 
 import marimo
 
-__generated_with = "0.17.8"
+__generated_with = "0.18.0"
 app = marimo.App(width="medium")
 
 

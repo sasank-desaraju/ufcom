@@ -11,7 +11,7 @@
 
 import marimo
 
-__generated_with = "0.15.4"
+__generated_with = "0.18.0"
 app = marimo.App(width="medium", app_title="PPV and Prevalence")
 
 
@@ -26,8 +26,7 @@ def _():
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     # Understanding Positive Predictive Value (PPV) and Negative Predictive Value (NPV)
 
     In **medical testing**, the Positive Predictive Value (PPV) and Negative Predictive Value (NPV) are important metrics that help us understand the effectiveness of a test.
@@ -38,20 +37,17 @@ def _(mo):
     These values depend on the prevalence of the disease in the population and the sensitivity and specificity of the test.
 
     In this notebook, we will explore how to calculate PPV and NPV using interactive visualizations.
-    """
-    )
+    """)
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## Setting Sensitivity, Specificity, and Prevalence
 
     Let's create sliders to adjust the sensitivity, specificity, and prevalence of a disease in a population.
-    """
-    )
+    """)
     return
 
 
@@ -68,8 +64,7 @@ def _(mo):
 
 @app.cell
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     ## PPV and NPV formulae
 
     Now, let's write out our formulae for calculating PPV and NPV.
@@ -80,14 +75,15 @@ def _(mo):
 
 
     Do these make sense? Let's take a moment to think about them...
-    """
-    )
+    """)
     return
 
 
 @app.cell
 def _(mo):
-    mo.md(r"""## Code for calculating PPV and NPV""")
+    mo.md(r"""
+    ## Code for calculating PPV and NPV
+    """)
     return
 
 
@@ -125,13 +121,11 @@ def _(npv, plt, ppv):
 
 @app.cell(hide_code=True)
 def _(mo):
-    mo.md(
-        r"""
+    mo.md(r"""
     Please send any feedback to Sasank at sasank.desaraju@ufl.edu.
 
     He'd love to hear what's helpful, not helpful, and any suggestions for future notebooks!
-    """
-    )
+    """)
     return
 
 
