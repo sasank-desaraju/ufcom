@@ -15,7 +15,7 @@
 
 import marimo
 
-__generated_with = "0.18.0"
+__generated_with = "0.18.2"
 app = marimo.App(width="medium")
 
 
@@ -123,7 +123,7 @@ def _(mo):
 
 
 @app.cell
-def _(alt, cutoff_button, cutoff_line, df):
+def _(alt, cutoff_line, df):
     dp = alt.Chart(df).mark_point().encode(
         # x='Value:Q',
         x=alt.X('Value:Q'),
@@ -140,14 +140,13 @@ def _(alt, cutoff_button, cutoff_line, df):
 
     # BUG: Since the random() above is recalculated every time the cutoff_line changes, it all jitters as you change the slider
     # This could be fixed by making it so that the below plotting happens in a different cell
-    if cutoff_button.value:
-        dp = dp + cutoff_line
+    dp = dp + cutoff_line
     dp
     return
 
 
 @app.cell
-def _(alt, cutoff_button, cutoff_line, df):
+def _(alt, cutoff_line, df):
     dens_sick = alt.Chart(df.loc[df['Condition'] == 'Sick']).transform_density(
         'Value',
         as_=['Value', 'Density'],
@@ -180,8 +179,7 @@ def _(alt, cutoff_button, cutoff_line, df):
     #     y=alt.Y('Density:Q'),
     #     color='Condition:N'
     # )
-    if cutoff_button.value:
-        dens = dens + cutoff_line
+    dens = dens + cutoff_line
     dens
     return
 
@@ -191,18 +189,14 @@ def _(mo):
     mo.md(r"""
     ## Cutoff
 
-    Now, let's add our cutoff value.
+    The vertical line on the plot above is our chosen cutoff value.
+    When a patient's biomarker is above the cutoff value (to its right), we classify them as having a "positive" test value.
+    Left of the cutoff line, accordingly, corresponds to a "negative" test result.
 
-    Go ahead and **click the button below** to show what our cutoff value is.
+    Use the **slider** below to change the cutoff value.
+    Note the metrics that are automatically calculated below.
     """)
     return
-
-
-@app.cell
-def _(mo):
-    cutoff_button = mo.ui.button(value=True, on_click=lambda value: True, label="Add Cutoff Value")
-    cutoff_button
-    return (cutoff_button,)
 
 
 @app.cell
@@ -218,14 +212,6 @@ def _(df, math, mo):
     )
     mo.hstack([cutoff_slider])
     return (cutoff_slider,)
-
-
-@app.cell(hide_code=True)
-def _(cutoff_button, mo):
-    # This doesn't work :/
-    if cutoff_button.value == True:
-        mo.md(r"""Notice that the cutoff value is now shown on the plots above!""")
-    return
 
 
 @app.cell
@@ -265,7 +251,7 @@ def _(mo):
 
 
 @app.cell
-def _(alt, cutoff, cutoff_button, eval_cutoff, healthy_data, pd, sick_data):
+def _(alt, cutoff, eval_cutoff, healthy_data, pd, sick_data):
     # Confusion Matrix
     _sens, _spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff)
     _data = {
@@ -294,7 +280,7 @@ def _(alt, cutoff, cutoff_button, eval_cutoff, healthy_data, pd, sick_data):
     # Combine the heatmap and text labels
     final_heatmap = heatmap + text
 
-    final_heatmap if cutoff_button.value else print("")
+    final_heatmap
     return
 
 
@@ -340,16 +326,7 @@ def _(mo):
 
 
 @app.cell
-def _(
-    alt,
-    cutoff,
-    cutoff_button,
-    eval_cutoff,
-    healthy_data,
-    pd,
-    roc,
-    sick_data,
-):
+def _(alt, cutoff, eval_cutoff, healthy_data, pd, roc, sick_data):
     # ROC Current Value and Display
     _sens, _spec, _tp, _fn, _tn, _fp = eval_cutoff(sick_data, healthy_data, cutoff)
     # current_stats = pd.DataFrame({'Cutoff': cutoff, 'True Positive Rate': _sens, 'False Positive Rate': _spec})
@@ -360,7 +337,7 @@ def _(
         tooltip=['Cutoff', 'True Positive Rate', 'False Positive Rate']
     )
     current_roc = roc + current_dot
-    current_roc if cutoff_button.value else print('')
+    current_roc
     return
 
 
