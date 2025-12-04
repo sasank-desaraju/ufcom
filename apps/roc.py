@@ -244,6 +244,8 @@ def _(healthy_data, np, sick_data):
 @app.cell(hide_code=True)
 def _(mo):
     mo.md(r"""
+    ## Confusion Matrix
+
     Note the confusion matrix.
     As the cutoff value splits the distributions as seen above, we get improved results with our confusion matrix.
     """)
@@ -320,6 +322,8 @@ def _(alt, df, eval_cutoff, healthy_data, math, pd, sick_data):
 @app.cell
 def _(mo):
     mo.md(r"""
+    ## ROC Curve
+
     We can appreciate how the ROC curve is created by marking the true positive rate and false positive rate as we iterate through our cutoff value.
     """)
     return
