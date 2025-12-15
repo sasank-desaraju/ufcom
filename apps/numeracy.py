@@ -10,6 +10,7 @@ def _():
     import altair as alt
     import polars as pl
     import numpy as np
+    import openai
     import os
     from dotenv import load_dotenv
     load_dotenv(override=True)
