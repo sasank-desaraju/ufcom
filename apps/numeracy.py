@@ -14,7 +14,7 @@ def _():
     from dotenv import load_dotenv
     load_dotenv(override=True)
     print(os.environ.get("LITELLM_API_KEY"))
-    return alt, mo, np, pl
+    return alt, mo, np, os, pl
 
 
 @app.cell
@@ -254,11 +254,11 @@ def _(alt, base_label_lin, curve_df_lin, mo, pl, points_df_lin):
 
 
 @app.cell
-def _(mo):
+def _(mo, os):
     chat = mo.ui.chat(
         mo.ai.llm.openai(
             model="gpt-oss-120b",
-            api_key="sk-yKTK1ZNlVsh9ckkrM05jZQ",
+            api_key=os.environ.get("LITELLM_API_KEY"),
             base_url="https://api.ai.it.ufl.edu",
             system_message="You are a helpful assistant helping medical residents and fellows learn biostatistics.",
         ),
