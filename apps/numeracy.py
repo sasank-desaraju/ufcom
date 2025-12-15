@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.18.2"
+__generated_with = "0.18.4"
 app = marimo.App(width="medium")
 
 
@@ -10,6 +10,10 @@ def _():
     import altair as alt
     import polars as pl
     import numpy as np
+    import os
+    from dotenv import load_dotenv
+    load_dotenv(override=True)
+    print(os.environ.get("LITELLM_API_KEY"))
     return alt, mo, np, pl
 
 
@@ -198,7 +202,6 @@ def _(alt, base_label_, curve_df, mo, pl, points_df):
     combined = curve_chart + vlines_chart + points_chart + labels_chart
 
     mo.ui.altair_chart(combined)
-
     return
 
 
@@ -247,7 +250,25 @@ def _(alt, base_label_lin, curve_df_lin, mo, pl, points_df_lin):
     combined_lin = curve_chart_lin + vlines_chart_lin + points_chart_lin + labels_chart_lin
 
     mo.ui.altair_chart(combined_lin)
+    return
 
+
+@app.cell
+def _(mo):
+    chat = mo.ui.chat(
+        mo.ai.llm.openai(
+            model="gpt-oss-120b",
+            api_key="sk-yKTK1ZNlVsh9ckkrM05jZQ",
+            base_url="https://api.ai.it.ufl.edu",
+            system_message="You are a helpful assistant helping medical residents and fellows learn biostatistics.",
+        ),
+    )
+    chat
+    return
+
+
+@app.cell
+def _():
     return
 
 
