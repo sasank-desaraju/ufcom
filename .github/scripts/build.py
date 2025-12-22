@@ -88,7 +88,12 @@ def _export_html_wasm(notebook_path: Path, output_dir: Path, as_app: bool = Fals
         return False
 
 
-def _generate_index(output_dir: Path, template_file: Path, notebooks_data: List[dict] | None = None, apps_data: List[dict] | None = None) -> None:
+def _generate_index(output_dir: Path,
+                    template_file: Path,
+                    notebooks_data: List[dict] | None = None,
+                    apps_data: List[dict] | None = None,
+                    others_data: List[dict] | None = None
+                    ) -> None:
     """Generate an index.html file that lists all the notebooks.
 
     This function creates an HTML index page that displays links to all the exported
@@ -123,7 +128,7 @@ def _generate_index(output_dir: Path, template_file: Path, notebooks_data: List[
         template = env.get_template(template_name)
 
         # Render the template with notebook and app data
-        rendered_html = template.render(notebooks=notebooks_data, apps=apps_data)
+        rendered_html = template.render(notebooks=notebooks_data, apps=apps_data, others=others_data)
 
         # Write the rendered HTML to the index.html file
         with open(index_path, "w") as f:
@@ -251,8 +256,11 @@ def main(
     # Export notebooks from the notebooks/ directory
     notebooks_data = _export(Path("notebooks"), output_dir, as_app=False)
 
-    # Export apps from the apps/ directory
+    # Export biostats apps from the apps/ directory
     apps_data = _export(Path("apps"), output_dir, as_app=True)
+
+    # Export other apps from the others/ directory
+    others_data = _export(Path("others"), output_dir, as_app=True)
 
     # Exit if no notebooks or apps were found
     if not notebooks_data and not apps_data:
@@ -263,7 +271,9 @@ def main(
     _copy_static_assets(output_dir)
 
     # Generate the index.html file that lists all notebooks and apps
-    _generate_index(output_dir=output_dir, notebooks_data=notebooks_data, apps_data=apps_data, template_file=template_file)
+    # INFO: we are skipping the notebooks now
+    # _generate_index(output_dir=output_dir, notebooks_data=notebooks_data, apps_data=apps_data, others_data=others_data, template_file=template_file)
+    _generate_index(output_dir=output_dir, apps_data=apps_data, others_data=others_data, template_file=template_file)
 
     logger.info(f"Build completed successfully. Output directory: {output_dir}")
 
